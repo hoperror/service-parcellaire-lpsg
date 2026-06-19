@@ -1,0 +1,31 @@
+# Données brutes (trop volumineuses pour Git)
+*.csv
+*.json.gz
+*.asc
+*.7z
+*.tif
+*.shp
+*.shx
+*.dbf
+*.prj
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Node (si ajouté plus tard)
+node_modules/
+
+# Quarto
+.quarto/
+*_files/
