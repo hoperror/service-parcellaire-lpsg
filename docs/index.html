@@ -1,9 +1,336 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta http-equiv="refresh" content="0; url=frontend/index.html">
-</head>
-<body>
-    <p><a href="frontend/index.html">Accéder à l'application</a></p>
-</body>
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Service Parcellaire | Le Pré-Saint-Gervais</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.fullscreen@3.0.2/Control.FullScreen.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container-fluid p-0">
+      <div class="row g-0" style="height: 100vh">
+        <!-- PANNEAU LATÉRAL -->
+        <div class="col-12 col-md-4 col-lg-3 sidebar bg-white">
+          <div class="sidebar-header text-white p-3">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/fr/6/61/Logo_Pr%C3%A9_St_Gervais.svg"
+              alt="Logo Le Pré-Saint-Gervais"
+            />
+            <div>
+              <h5 class="mb-0 fw-bold" style="font-size: 1rem">
+                Service Parcellaire
+              </h5>
+              <small class="parcelle-count"
+                >Le Pré-Saint-Gervais |
+                <span id="parcelle-count">chargement...</span></small
+              >
+            </div>
+          </div>
+
+          <div class="p-3 border-bottom">
+            <ul class="nav nav-tabs nav-fill mb-3" role="tablist">
+              <li class="nav-item">
+                <button
+                  class="nav-link active"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-adresse"
+                >
+                  <i class="bi bi-search me-1"></i>Adresse
+                </button>
+              </li>
+              <li class="nav-item">
+                <button
+                  class="nav-link"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-coords"
+                >
+                  <i class="bi bi-pin-map me-1"></i>Coordonnées
+                </button>
+              </li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="tab-adresse">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="input-adresse"
+                    placeholder="Ex : 18 rue du 14 Juillet"
+                    autocomplete="off"
+                    list="suggestions-adresse"
+                  />
+                  <datalist id="suggestions-adresse"></datalist>
+                  <button class="btn btn-primary" onclick="searchByAddress()">
+                    <i class="bi bi-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="tab-pane fade" id="tab-coords">
+                <div class="row g-2">
+                  <div class="col-5">
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      id="input-x"
+                      placeholder="X (L93)"
+                      step="any"
+                    />
+                  </div>
+                  <div class="col-5">
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      id="input-y"
+                      placeholder="Y (L93)"
+                      step="any"
+                    />
+                  </div>
+                  <div class="col-2">
+                    <button
+                      class="btn btn-primary btn-sm w-100"
+                      onclick="searchByCoords()"
+                    >
+                      <i class="bi bi-arrow-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <small class="text-muted mt-2 d-block">
+              <i class="bi bi-cursor-fill me-1"></i>Ou cliquez directement sur
+              une parcelle
+            </small>
+          </div>
+
+          <!-- Placeholder + Dashboard -->
+          <div id="placeholder" class="text-center text-muted p-4">
+            <i class="bi bi-map" style="font-size: 2rem; opacity: 0.3"></i>
+            <p class="mt-2 small">
+              Recherchez une adresse ou cliquez<br />sur une parcelle pour
+              commencer
+            </p>
+          </div>
+
+          <div id="dashboard" class="dashboard d-none">
+            <div class="dashboard-title">
+              <i class="bi bi-bar-chart-fill me-1"></i>Statistiques communales
+            </div>
+            <div class="dashboard-grid">
+              <div class="dash-card">
+                <div class="dash-value" id="dash-parcelles">|</div>
+                <div class="dash-label">Parcelles</div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-value" id="dash-surface-moy">|</div>
+                <div class="dash-label">Surface moyenne</div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-value" id="dash-batiments">|</div>
+                <div class="dash-label">Bâtiments total</div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-value" id="dash-ratio-moy">|</div>
+                <div class="dash-label">Ratio bâti moyen</div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-value" id="dash-surface-tot">|</div>
+                <div class="dash-label">Surface totale</div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-value" id="dash-densite">|</div>
+                <div class="dash-label">Densité bâtie moy.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div
+            id="loading"
+            class="spinner-container align-items-center justify-content-center p-5"
+          >
+            <div class="text-center">
+              <div class="spinner-border mb-2" role="status"></div>
+              <p class="small text-muted">Recherche en cours...</p>
+            </div>
+          </div>
+
+          <!-- Erreur -->
+          <div
+            id="error"
+            class="alert alert-danger m-3 d-none"
+            role="alert"
+          ></div>
+
+          <!-- Résultat -->
+          <div id="result" class="p-3 d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0 fw-bold text-primary" id="res-adresse"></h6>
+              <div class="d-flex align-items-center gap-2">
+                <span
+                  class="badge result-badge font-monospace"
+                  id="res-id"
+                ></span>
+                <button
+                  class="btn btn-sm btn-outline-secondary border-0"
+                  onclick="clearSelection()"
+                  title="Fermer"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Surface parcelle</div>
+                  <div class="stat-value" id="res-surface"></div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Bâtiments</div>
+                  <div class="stat-value" id="res-batiments"></div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Surface bâtie</div>
+                  <div class="stat-value" id="res-surface-batie"></div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Ratio bâti</div>
+                  <div class="stat-value" id="res-ratio"></div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Pente moyenne</div>
+                  <div class="stat-value" id="res-pente"></div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card card-body p-2 stat-card-custom">
+                  <div class="stat-label">Section / N°</div>
+                  <div class="stat-value" id="res-section"></div>
+                </div>
+              </div>
+            </div>
+            <h6 class="fw-bold small text-primary">
+              <i class="bi bi-clock-history me-1"></i>Historique DVF
+            </h6>
+            <div id="dvf-list" class="list-group list-group-flush"></div>
+            <div class="dvf-chart" id="dvf-chart"></div>
+          </div>
+        </div>
+
+        <!-- CARTE -->
+        <div class="col-12 col-md-8 col-lg-9 position-relative">
+          <div id="map"></div>
+
+          <!-- Contrôle choroplèthe -->
+          <div class="choro-control">
+            <i class="bi bi-palette"></i>
+            <select id="choro-select" onchange="applyChoroplethe(this.value)">
+              <option value="none">Couleur uniforme</option>
+              <option value="surface_m2">Surface réelle (m²)</option>
+              <option value="nb_batiments">Nombre de bâtiments</option>
+              <option value="surface_batie_m2">Surface bâtie (m²)</option>
+              <option value="ratio_bati">Ratio bâti (%)</option>
+            </select>
+          </div>
+
+          <!-- Contrôle des couches -->
+          <div class="layer-control">
+            <div class="btn-group-vertical" role="group">
+              <button
+                class="btn btn-sm active"
+                id="btn-batiments"
+                onclick="toggleBatiments(this)"
+              >
+                <i class="bi bi-buildings me-1"></i>Bâtiments
+              </button>
+              <button
+                class="btn btn-sm"
+                id="btn-commune"
+                onclick="toggleCommune(this)"
+              >
+                <i class="bi bi-boundary me-1"></i>Commune
+              </button>
+            </div>
+          </div>
+
+          <!-- Légende choroplèthe -->
+          <div class="choro-legend" id="choro-legend">
+            <strong id="choro-legend-title"></strong>
+            <div class="choro-gradient"></div>
+            <div class="choro-labels">
+              <span id="choro-min"></span>
+              <span id="choro-max"></span>
+            </div>
+          </div>
+
+          <!-- Légende couches -->
+          <div class="map-legend">
+            <div class="legend-item">
+              <div
+                class="legend-box"
+                style="background: #f5b7b1; border: 1.5px solid #c0392b"
+              ></div>
+              <span>Parcelles</span>
+            </div>
+            <div class="legend-item">
+              <div
+                class="legend-box"
+                style="
+                  background: rgba(192, 57, 43, 0.3);
+                  border: 2px solid #922b21;
+                "
+              ></div>
+              <span>Sélection</span>
+            </div>
+            <div class="legend-item">
+              <div
+                class="legend-box"
+                style="
+                  background: rgba(52, 73, 94, 0.15);
+                  border: 1.5px solid #34495e;
+                "
+              ></div>
+              <span>Bâtiments</span>
+            </div>
+            <div class="legend-item">
+              <div
+                class="legend-box"
+                style="background: transparent; border: 2px dashed #e67e22"
+              ></div>
+              <span>Commune</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.fullscreen@3.0.2/Control.FullScreen.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>
